@@ -21,11 +21,11 @@ snapInPosBottom = pcbWidth  / 2;
 snapInPosLeft   = 8; //pcbLength / 2;
 snapInPosRight  = pcbLength / 2;
 
-plateThickness  = 2;
-plateHole1Pos   = [pcbWidth/5, pcbLength/2, 3];  //-- X-ax, Y-ax, diameter M3
-plateHole2Pos   = [pcbWidth-(pcbWidth/5), pcbLength/2, 3];        //-- X-ax, Y-ax, diameter M3
-plateHole3Pos   = [0, 0, 3];       //-- X-ax, Y-ax, diameter M3
-plateHole4Pos   = [0, 0, 3];       //-- X-ax, Y-ax, diameter M3
+plateThickness  = 4;
+plateHolesList = [
+    [pcbWidth/5, pcbLength/2, 3],
+    [pcbWidth-(pcbWidth/5), pcbLength/2, 3]
+];
 
 showDebug = 0;                //-- 1 = debug colors, 0 = final solid
 
@@ -72,18 +72,17 @@ module cutSlopeAtTop(runLen)
 }
 
 //-------------------------------------------------------------
-//-- Blue lip CUTTER: perfectly matches PCB outer edge
+//-- Blue lip CUTTER: creates notch *inside* wall for PCB edge
 //-------------------------------------------------------------
 module lipCutter(runLen)
 {
-    clearance = 0.2;                       //-- fit clearance
-    lipDepth  = pcbThickness + clearance;   //-- depth inward from inner face (Y=0)
-    lipHeight = pcbThickness * 1.2;         //-- vertical size of notch
+    clearance = pcbClearance;                //-- fit clearance
+    lipDepth  = pcbThickness * 0.9;          //-- how deep the notch goes inward
+    lipHeight = pcbThickness * 1.1;          //-- vertical size of notch
     lipZ      = snapInHeight - (3.2 * pcbThickness); //-- vertical position below top
 
     color("blue")
-    // Inner face at Y=0, extends outward by lipDepth
-    translate([ -runLen/2, -lipDepth, lipZ ])
+    translate([ -runLen/2, 0, lipZ ])        //-- cut starts at wall inner face (Y=0)
         cube([ runLen, lipDepth, lipHeight ]);
 }
 
@@ -193,54 +192,32 @@ module placeRight(pos, runLen)
 }
 
 //-------------------------------------------------------------
-//-- Plate hole generator
-//-- Creates circular holes in the base plate if valid positions are defined.
-//-- If X and Y coordinates are both 0 → no hole is made.
+//-- Plate hole generator (generic version)
+//-- Loops through all entries in plateHolesList = [ [x,y,d], ... ]
+//-- and subtracts holes if both X and Y ≠ 0
 //-------------------------------------------------------------
 module plateHoles(pWidth, pLength, pThickness)
 {
     difference()
     {
-        //-- Base plate itself
+        //-- Base plate
         color("gold")
         translate([ -pWidth/2, -pLength/2, 0 ])
             cube([ pWidth, pLength, pThickness ]);
 
-        //-- Hole 1
-        if (!(plateHole1Pos[0] == 0 && plateHole1Pos[1] == 0))
-            translate([
-                plateHole1Pos[0] - pcbWidth/2,
-                plateHole1Pos[1] - pcbLength/2,
-                -0.1
-            ])
-                color("gray") cylinder(h = plateThickness + 0.2, d = plateHole1Pos[2], $fn = 40);
+        //-- All defined holes
+        for (hole = plateHolesList)
+        {
+            x = hole[0];
+            y = hole[1];
+            d = hole[2];
 
-        //-- Hole 2
-        if (!(plateHole2Pos[0] == 0 && plateHole2Pos[1] == 0))
-            translate([
-                plateHole2Pos[0] - pcbWidth/2,
-                plateHole2Pos[1] - pcbLength/2,
-                -0.1
-            ])
-                cylinder(h = plateThickness + 0.2, d = plateHole2Pos[2], $fn = 40);
-
-        //-- Hole 3
-        if (!(plateHole3Pos[0] == 0 && plateHole3Pos[1] == 0))
-            translate([
-                plateHole3Pos[0] - pcbWidth/2,
-                plateHole3Pos[1] - pcbLength/2,
-                -0.1
-            ])
-                cylinder(h = plateThickness + 0.2, d = plateHole3Pos[2], $fn = 40);
-
-        //-- Hole 4
-        if (!(plateHole4Pos[0] == 0 && plateHole4Pos[1] == 0))
-            translate([
-                plateHole4Pos[0] - pcbWidth/2,
-                plateHole4Pos[1] - pcbLength/2,
-                -0.1
-            ])
-                cylinder(h = plateThickness + 0.2, d = plateHole4Pos[2], $fn = 40);
+            if (!(x == 0 && y == 0))
+            {
+                translate([ x - pcbWidth/2, y - pcbLength/2, -0.1 ])
+                    cylinder(h = pThickness + 0.2, d = d, $fn = 40);
+            }
+        }
     }
 }
 
@@ -252,15 +229,10 @@ module pcbSnapInPlate()
     plateWidth  = pcbWidth  + snapInThickness;
     plateLength = pcbLength + snapInThickness;
 
-    //-- Base plate
-//    color("gold")
-//    translate([ -plateWidth/2, -plateLength/2, 0 ])
-//        cube([ plateWidth, plateLength, plateThickness ]);
+    //-- Base plate with optional holes (correct thickness!)
+    plateHoles(plateWidth, plateLength, plateThickness);
 
-    //-- Base plate with optional holes
-    plateHoles(plateWidth, plateLength, pcbThickness);
-
-    //-- Mounts
+    //-- Mounts (sit exactly on top of the plate)
     placeTop(   snapInPosTop,    min(snapInWidth, pcbWidth)  );
     placeBottom(snapInPosBottom, min(snapInWidth, pcbWidth)  );
     placeLeft(  snapInPosLeft,   min(snapInWidth, pcbLength) );
@@ -271,7 +243,12 @@ module pcbSnapInPlate()
 //-- Render
 //-------------------------------------------------------------
 pcbSnapInPlate();
-translate([0,0,-plateThickness + snapInHeight - 0.2])
+
+//-------------------------------------------------------------
+//-- Reference PCB block (black)
+//-------------------------------------------------------------
+lipZ = snapInHeight - (2.5 * pcbThickness);  //-- slightly less deep cut
+translate([0, 0, plateThickness + lipZ])
 {
-  ;//color([0,0,0,0.5]) cube([pcbWidth, pcbLength, pcbThickness], center=true);  //-- reference PCB
+    ;//color([0,0,0,0.5])  cube([pcbWidth, pcbLength, pcbThickness], center=true);
 }
