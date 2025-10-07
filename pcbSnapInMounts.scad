@@ -9,12 +9,10 @@ pcbLength       = 31.0;
 pcbThickness    = 1.6;
 pcbClearance    = 0.5;  //-- small fit tolerance, adjust if PCB feels too tight
 
-snapInThickness = 2;          //-- XY thickness of wall
+snapInThickness = 3;          //-- XY thickness of wall
 snapInHeight    = 12;         //-- Z height above plate
-
-snapInSlope     = 45;         //-- degrees, 30..60 typical
+snapInSlope     = 60;         //-- degrees, 30..60 typical
 snapInWidth     = 4;          //-- width of each snap along edge
-
 snapInFilletRadius = 4;       //-- radius of rounded transition at base
 
 //-- Snap-in positions (0 disables)
@@ -25,11 +23,11 @@ snapInPosRight  = pcbLength / 2;
 
 plateThickness  = 2;
 plateHolesList = [
-    [pcbWidth/5, pcbLength/2, 3],
-    [pcbWidth-(pcbWidth/5), pcbLength/2, 3]
+    [pcbWidth/5, pcbLength/2, 4],
+    [pcbWidth-(pcbWidth/4), pcbLength/2, 4]
 ];
 
-showDebug = 1;                //-- 1 = debug colors, 0 = final solid
+showDebug = 0;                //-- 1 = debug colors, 0 = final solid
 
 //-------------------------------------------------------------
 //-- Helpers
@@ -40,25 +38,29 @@ function drop_at_angle(thk, ang_deg, max_drop) = clamp(tan(ang_deg) * thk, 0, ma
 //-------------------------------------------------------------
 //-- Green cutter: starts LOWER at inner face (H - D)
 //-- and reaches H at the outer face, so it always cuts the wall
+//-- Inner top aligns with lip top, outer top calculated from slope angle
 //-------------------------------------------------------------
 module cutSlopeAtTop(runLen)
 {
-    H = snapInHeight;
     T = snapInThickness;
-    D = drop_at_angle(T, snapInSlope, H);   //-- ~T at 45°
-    eps = 0.01;                              //-- tiny overlap for robust CSG
+    lipZ = snapInHeight - (3.2 * pcbThickness);
+    lipHeight = pcbThickness * 1.1;
+    innerTop = lipZ + lipHeight;                     //-- inner top aligns with lip top
+    D = T * tan(snapInSlope);                        //-- drop based on thickness and angle
+    H = innerTop + D;                                 //-- outer top height
+    eps = 0.01;                                       //-- tiny overlap for robust CSG
 
-    //-- Inner top is lowered by D; outer top stays at H.
+    //-- Inner top is at innerTop; outer top is at H.
     //-- We extend upwards a lot so the difference always removes material.
     v = [
-        [-runLen/2, 0, H - D - eps],   // 0 inner top (X-)
-        [ runLen/2, 0, H - D - eps],   // 1 inner top (X+)
-        [-runLen/2, T, H + eps],       // 2 outer top (X-)
-        [ runLen/2, T, H + eps],       // 3 outer top (X+)
-        [-runLen/2, 0, H - D + H],     // 4 top extension
-        [ runLen/2, 0, H - D + H],     // 5
-        [-runLen/2, T, H + H],         // 6
-        [ runLen/2, T, H + H]          // 7
+        [-runLen/2, 0, innerTop - eps],   // 0 inner top (X-)
+        [ runLen/2, 0, innerTop - eps],   // 1 inner top (X+)
+        [-runLen/2, T, H + eps],          // 2 outer top (X-)
+        [ runLen/2, T, H + eps],          // 3 outer top (X+)
+        [-runLen/2, 0, innerTop + H],     // 4 top extension
+        [ runLen/2, 0, innerTop + H],     // 5
+        [-runLen/2, T, H + H],            // 6
+        [ runLen/2, T, H + H]             // 7
     ];
 
     faces = [
@@ -81,7 +83,7 @@ module lipCutter(runLen)
     clearance = pcbClearance;                //-- fit clearance
     lipDepth  = pcbThickness * 0.9;          //-- how deep the notch goes inward
     lipHeight = pcbThickness * 1.1;          //-- vertical size of notch
-    lipZ      = snapInHeight - (3.2 * pcbThickness); //-- vertical position below top
+    lipZ      = snapInHeight - (3.2 * pcbThickness); //-- fixed position from top
 
     color("blue")
     translate([ -runLen/2, 0, lipZ ])        //-- cut starts at wall inner face (Y=0)
@@ -96,12 +98,20 @@ module wallBlockWithFillet(runLen)
 {
   r = snapInFilletRadius;
   
+  //-- Calculate wall height based on slope
+  T = snapInThickness;
+  lipZ = snapInHeight - (3.2 * pcbThickness);
+  lipHeight = pcbThickness * 1.1;
+  innerTop = lipZ + lipHeight;
+  D = T * tan(snapInSlope);
+  H = innerTop + D;  //-- actual outer top height
+  
   color("red")
   union()
   {
-    //-- Main wall block (full height from plate)
+    //-- Main wall block (height = outer top)
     translate([ -runLen/2, 0, 0 ])
-      cube([ runLen, snapInThickness, snapInHeight ]);
+      cube([ runLen, snapInThickness, H ]);
     
     //-- Fillet material at inner bottom corner (quarter-round profile)
     //-- Square block with center at r/2 inward from wall, circle at top-inner corner
@@ -116,7 +126,7 @@ module wallBlockWithFillet(runLen)
         color("purple")
         translate([ -0.1, 0, r ])
           rotate([0, 90, 0])
-            cylinder(h = runLen + 0.2, r = r, $fn = 32);
+            cylinder(h = runLen + 0.2, r = r, $fn = 60);
       }
   }
 }
@@ -273,7 +283,7 @@ pcbSnapInPlate();
 //-- Reference PCB block (black)
 //-------------------------------------------------------------
 lipZ = snapInHeight - (2.5 * pcbThickness);  //-- slightly less deep cut
-translate([0, 0, plateThickness + lipZ])
+translate([0, 0, plateThickness + lipZ - 0.2])
 {
-    color([0,0,0,0.5])  cube([pcbWidth, pcbLength, pcbThickness], center=true);
+    ;//color([0,0,0,0.5])  cube([pcbWidth, pcbLength, pcbThickness], center=true);
 }
