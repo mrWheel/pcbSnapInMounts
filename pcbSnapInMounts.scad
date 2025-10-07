@@ -156,8 +156,8 @@ module placeTop(pos, runLen)
             //-- X: center position along width
             clamp(pos, runLen/2, pcbWidth - runLen/2) - pcbWidth/2,
 
-            //-- Y: inward offset from top edge
-            (pcbLength / 2) - (snapInThickness / 2),
+            //-- Y: inward offset from top edge + clearance
+            (pcbLength / 2 + pcbClearance) - (snapInThickness / 2),
 
             //-- Z: on top of the base plate
             plateThickness
@@ -172,8 +172,8 @@ module placeBottom(pos, runLen)
             //-- X: center position along width
             clamp(pos, runLen/2, pcbWidth - runLen/2) - pcbWidth/2,
 
-            //-- Y: inward offset from bottom edge
-            (-pcbLength / 2) + (snapInThickness / 2),
+            //-- Y: inward offset from bottom edge - clearance
+            (-pcbLength / 2 - pcbClearance) + (snapInThickness / 2),
 
             //-- Z: on top of the base plate
             plateThickness
@@ -186,8 +186,8 @@ module placeLeft(pos, runLen)
 {
     if (pos != 0)
         translate([
-            //-- X: inward offset from left edge
-            (-pcbWidth / 2) + (snapInThickness / 2),
+            //-- X: inward offset from left edge - clearance
+            (-pcbWidth / 2 - pcbClearance) + (snapInThickness / 2),
 
             //-- Y: center position along length
             clamp(pos, runLen/2, pcbLength - runLen/2) - pcbLength/2,
@@ -203,8 +203,8 @@ module placeRight(pos, runLen)
 {
     if (pos != 0)
         translate([
-            //-- X: inward offset from right edge
-            (pcbWidth / 2) - (snapInThickness / 2),
+            //-- X: inward offset from right edge + clearance
+            (pcbWidth / 2 + pcbClearance) - (snapInThickness / 2),
 
             //-- Y: center position along length
             clamp(pos, runLen/2, pcbLength - runLen/2) - pcbLength/2,
@@ -251,8 +251,8 @@ module plateHoles(pWidth, pLength, pThickness)
 //-------------------------------------------------------------
 module pcbSnapInPlate()
 {
-    plateWidth  = pcbWidth  + snapInThickness;
-    plateLength = pcbLength + snapInThickness;
+    plateWidth  = pcbWidth  + 2*pcbClearance + snapInThickness;
+    plateLength = pcbLength + 2*pcbClearance + snapInThickness;
 
     //-- Base plate with optional holes (correct thickness!)
     plateHoles(plateWidth, plateLength, plateThickness);
@@ -275,5 +275,5 @@ pcbSnapInPlate();
 lipZ = snapInHeight - (2.5 * pcbThickness);  //-- slightly less deep cut
 translate([0, 0, plateThickness + lipZ])
 {
-    ;//color([0,0,0,0.5])  cube([pcbWidth, pcbLength, pcbThickness], center=true);
+    color([0,0,0,0.5])  cube([pcbWidth, pcbLength, pcbThickness], center=true);
 }
