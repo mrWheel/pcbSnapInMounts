@@ -7,13 +7,15 @@
 pcbWidth        = 30.5;
 pcbLength       = 31.0;
 pcbThickness    = 1.6;
-pcbClearance    = 0.15;  //-- small fit tolerance, adjust if PCB feels too tight
+pcbClearance    = 0.5;  //-- small fit tolerance, adjust if PCB feels too tight
 
-snapInThickness = 4;          //-- XY thickness of wall
+snapInThickness = 2;          //-- XY thickness of wall
 snapInHeight    = 12;         //-- Z height above plate
 
 snapInSlope     = 45;         //-- degrees, 30..60 typical
 snapInWidth     = 4;          //-- width of each snap along edge
+
+snapInFilletRadius = 4;       //-- radius of rounded transition at base
 
 //-- Snap-in positions (0 disables)
 snapInPosTop    = pcbWidth  / 2;
@@ -21,13 +23,13 @@ snapInPosBottom = pcbWidth  / 2;
 snapInPosLeft   = 8; //pcbLength / 2;
 snapInPosRight  = pcbLength / 2;
 
-plateThickness  = 4;
+plateThickness  = 2;
 plateHolesList = [
     [pcbWidth/5, pcbLength/2, 3],
     [pcbWidth-(pcbWidth/5), pcbLength/2, 3]
 ];
 
-showDebug = 0;                //-- 1 = debug colors, 0 = final solid
+showDebug = 1;                //-- 1 = debug colors, 0 = final solid
 
 //-------------------------------------------------------------
 //-- Helpers
@@ -87,13 +89,36 @@ module lipCutter(runLen)
 }
 
 //-------------------------------------------------------------
-//-- Red wall before subtracting slope + lip
+//-- Red wall with rounded fillet transition at base (inner side)
+//-- Adds material at inside corner where wall meets plate
 //-------------------------------------------------------------
-module wallBlock(runLen)
+module wallBlockWithFillet(runLen)
 {
-    color("red")
+  r = snapInFilletRadius;
+  
+  color("red")
+  union()
+  {
+    //-- Main wall block (full height from plate)
     translate([ -runLen/2, 0, 0 ])
-        cube([ runLen, snapInThickness, snapInHeight ]);
+      cube([ runLen, snapInThickness, snapInHeight ]);
+    
+    //-- Fillet material at inner bottom corner (quarter-round profile)
+    //-- Square block with center at r/2 inward from wall, circle at top-inner corner
+    translate([ -runLen/2, -r, 0 ])
+      difference()
+      {
+        //-- Green square block extending inward from wall
+        color("green")
+        cube([ runLen, r, r ]);
+        
+        //-- Purple circle at top-inner corner of square to create fillet radius
+        color("purple")
+        translate([ -0.1, 0, r ])
+          rotate([0, 90, 0])
+            cylinder(h = runLen + 0.2, r = r, $fn = 32);
+      }
+  }
 }
 
 //-------------------------------------------------------------
@@ -103,7 +128,7 @@ module snapInMount(runLen)
 {
     if (showDebug)
     {
-        wallBlock(runLen);
+        wallBlockWithFillet(runLen);
         cutSlopeAtTop(runLen);
         lipCutter(runLen);
     }
@@ -111,7 +136,7 @@ module snapInMount(runLen)
     {
         difference()
         {
-            wallBlock(runLen);
+            wallBlockWithFillet(runLen);
             cutSlopeAtTop(runLen);
             lipCutter(runLen);
         }
