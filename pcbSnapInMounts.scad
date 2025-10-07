@@ -4,14 +4,13 @@
 //-------------------------------------------------------------
 
 //-- ===== Parameters (mm) =====
-pcbWidth        = 50.5;
+pcbWidth        = 30.5;
 pcbLength       = 31.0;
 pcbThickness    = 1.6;
 pcbClearance    = 0.15;  //-- small fit tolerance, adjust if PCB feels too tight
 
 snapInThickness = 4;          //-- XY thickness of wall
 snapInHeight    = 12;         //-- Z height above plate
-plateThickness  = 2;
 
 snapInSlope     = 45;         //-- degrees, 30..60 typical
 snapInWidth     = 4;          //-- width of each snap along edge
@@ -21,6 +20,12 @@ snapInPosTop    = pcbWidth  / 2;
 snapInPosBottom = pcbWidth  / 2;
 snapInPosLeft   = 8; //pcbLength / 2;
 snapInPosRight  = pcbLength / 2;
+
+plateThickness  = 2;
+plateHole1Pos   = [pcbWidth/5, pcbLength/2, 3];  //-- X-ax, Y-ax, diameter M3
+plateHole2Pos   = [pcbWidth-(pcbWidth/5), pcbLength/2, 3];        //-- X-ax, Y-ax, diameter M3
+plateHole3Pos   = [0, 0, 3];       //-- X-ax, Y-ax, diameter M3
+plateHole4Pos   = [0, 0, 3];       //-- X-ax, Y-ax, diameter M3
 
 showDebug = 0;                //-- 1 = debug colors, 0 = final solid
 
@@ -188,6 +193,58 @@ module placeRight(pos, runLen)
 }
 
 //-------------------------------------------------------------
+//-- Plate hole generator
+//-- Creates circular holes in the base plate if valid positions are defined.
+//-- If X and Y coordinates are both 0 → no hole is made.
+//-------------------------------------------------------------
+module plateHoles(pWidth, pLength, pThickness)
+{
+    difference()
+    {
+        //-- Base plate itself
+        color("gold")
+        translate([ -pWidth/2, -pLength/2, 0 ])
+            cube([ pWidth, pLength, pThickness ]);
+
+        //-- Hole 1
+        if (!(plateHole1Pos[0] == 0 && plateHole1Pos[1] == 0))
+            translate([
+                plateHole1Pos[0] - pcbWidth/2,
+                plateHole1Pos[1] - pcbLength/2,
+                -0.1
+            ])
+                color("gray") cylinder(h = plateThickness + 0.2, d = plateHole1Pos[2], $fn = 40);
+
+        //-- Hole 2
+        if (!(plateHole2Pos[0] == 0 && plateHole2Pos[1] == 0))
+            translate([
+                plateHole2Pos[0] - pcbWidth/2,
+                plateHole2Pos[1] - pcbLength/2,
+                -0.1
+            ])
+                cylinder(h = plateThickness + 0.2, d = plateHole2Pos[2], $fn = 40);
+
+        //-- Hole 3
+        if (!(plateHole3Pos[0] == 0 && plateHole3Pos[1] == 0))
+            translate([
+                plateHole3Pos[0] - pcbWidth/2,
+                plateHole3Pos[1] - pcbLength/2,
+                -0.1
+            ])
+                cylinder(h = plateThickness + 0.2, d = plateHole3Pos[2], $fn = 40);
+
+        //-- Hole 4
+        if (!(plateHole4Pos[0] == 0 && plateHole4Pos[1] == 0))
+            translate([
+                plateHole4Pos[0] - pcbWidth/2,
+                plateHole4Pos[1] - pcbLength/2,
+                -0.1
+            ])
+                cylinder(h = plateThickness + 0.2, d = plateHole4Pos[2], $fn = 40);
+    }
+}
+
+//-------------------------------------------------------------
 //-- Main Assembly
 //-------------------------------------------------------------
 module pcbSnapInPlate()
@@ -196,9 +253,12 @@ module pcbSnapInPlate()
     plateLength = pcbLength + snapInThickness;
 
     //-- Base plate
-    color("gold")
-    translate([ -plateWidth/2, -plateLength/2, 0 ])
-        cube([ plateWidth, plateLength, plateThickness ]);
+//    color("gold")
+//    translate([ -plateWidth/2, -plateLength/2, 0 ])
+//        cube([ plateWidth, plateLength, plateThickness ]);
+
+    //-- Base plate with optional holes
+    plateHoles(plateWidth, plateLength, pcbThickness);
 
     //-- Mounts
     placeTop(   snapInPosTop,    min(snapInWidth, pcbWidth)  );
@@ -213,5 +273,5 @@ module pcbSnapInPlate()
 pcbSnapInPlate();
 translate([0,0,-plateThickness + snapInHeight - 0.2])
 {
-  color([0,0,0,0.5]) cube([pcbWidth, pcbLength, pcbThickness], center=true);  //-- reference PCB
+  ;//color([0,0,0,0.5]) cube([pcbWidth, pcbLength, pcbThickness], center=true);  //-- reference PCB
 }
