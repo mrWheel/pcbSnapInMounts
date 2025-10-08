@@ -6,14 +6,14 @@
 //-- ===== Parameters (mm) =====
 pcbWidth        = 30.5;
 pcbLength       = 31.0;
-pcbThickness    = 1.6;
-pcbClearance    = 0.5;  //-- small fit tolerance, adjust if PCB feels too tight
+pcbThickness    = 1.6 + 0.3;  //-- PCB thickness + Tolerance
+pcbClearance    = 0.5;        //-- small fit tolerance, adjust if PCB feels too tight
 
 snapInThickness = 3;          //-- XY thickness of wall
 snapInHeight    = 12;         //-- Z height above plate
 snapInSlope     = 60;         //-- degrees, 30..60 typical
 snapInWidth     = 4;          //-- width of each snap along edge
-snapInFilletRadius = 4;       //-- radius of rounded transition at base
+snapInFilletRadius = 2;       //-- radius of rounded transition at base
 
 //-- Snap-in positions (0 disables)
 snapInPosTop    = pcbWidth  / 2;
@@ -24,7 +24,12 @@ snapInPosRight  = pcbLength / 2;
 plateThickness  = 2;
 plateHolesList = [
     [pcbWidth/5, pcbLength/2, 4],
-    [pcbWidth-(pcbWidth/4), pcbLength/2, 4]
+    [pcbWidth-(pcbWidth/4), pcbLength/2, 4],
+    [pcbWidth/2, pcbLength/2, 8],
+    [8, 5, 8],
+    [pcbLength-8, 5, 8],
+    [8, pcbWidth-5, 8],
+    [pcbLength-8, pcbWidth-5, 8]
 ];
 
 showDebug = 0;                //-- 1 = debug colors, 0 = final solid
