@@ -15,6 +15,8 @@ The generated model includes:
 
 By modifying a few parameters, you can quickly generate mounts for different PCB sizes and shapes.
 
+![Preview](images/openSCAD_Preview.png)
+
 ---
 
 ## ⚙️ How It Works
@@ -75,6 +77,8 @@ pcbSnapInMounts(
 ```
 Render (F6) and export the model as STL for 3D printing.
 
+[Download STL file](images/pcbSnapInMounts.stl)
+
 ⸻
 
 ## 🧱 Applications
@@ -91,5 +95,3 @@ You are free to use, modify, and distribute this software as long as the origina
 ⸻
 
  Author: Willem Aandewiel (mrWheel)
- 
- 
