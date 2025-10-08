@@ -7,7 +7,7 @@
 pcbWidth        = 30.5;
 pcbLength       = 31.0;
 pcbThickness    = 1.6 + 0.3;  //-- PCB thickness + Tolerance
-pcbClearance    = 0.5;        //-- small fit tolerance, adjust if PCB feels too tight
+pcbClearance    = 0.5;        //-- tolerance: 0.5 for standard Bambulabs PLA
 
 snapInThickness = 3;          //-- XY thickness of wall
 snapInHeight    = 12;         //-- Z height above plate
@@ -22,6 +22,7 @@ snapInPosLeft   = 8; //pcbLength / 2;
 snapInPosRight  = pcbLength / 2;
 
 plateThickness  = 2;
+plateCornerRadius = 3;
 plateHolesList = [
     [pcbWidth/5, pcbLength/2, 4],
     [pcbWidth-(pcbWidth/4), pcbLength/2, 4],
@@ -232,6 +233,30 @@ module placeRight(pos, runLen)
 }
 
 //-------------------------------------------------------------
+//-- Rounded rectangle base plate
+//-------------------------------------------------------------
+module roundedRectangle(width, length, height, radius)
+{
+    r = radius;
+    
+    hull()
+    {
+        //-- Four corner cylinders
+        translate([ -width/2 + r, -length/2 + r, 0 ])
+            cylinder(h = height, r = r, $fn = 40);
+        
+        translate([ width/2 - r, -length/2 + r, 0 ])
+            cylinder(h = height, r = r, $fn = 40);
+        
+        translate([ -width/2 + r, length/2 - r, 0 ])
+            cylinder(h = height, r = r, $fn = 40);
+        
+        translate([ width/2 - r, length/2 - r, 0 ])
+            cylinder(h = height, r = r, $fn = 40);
+    }
+}
+
+//-------------------------------------------------------------
 //-- Plate hole generator (generic version)
 //-- Loops through all entries in plateHolesList = [ [x,y,d], ... ]
 //-- and subtracts holes if both X and Y ≠ 0
@@ -240,10 +265,9 @@ module plateHoles(pWidth, pLength, pThickness)
 {
     difference()
     {
-        //-- Base plate
+        //-- Base plate with rounded corners
         color("gold")
-        translate([ -pWidth/2, -pLength/2, 0 ])
-            cube([ pWidth, pLength, pThickness ]);
+            roundedRectangle(pWidth, pLength, pThickness, plateCornerRadius);
 
         //-- All defined holes
         for (hole = plateHolesList)
